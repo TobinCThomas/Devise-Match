@@ -49,7 +49,7 @@ const normaliseSearchValue = (value: string) => value
 const resultKey = (value: string) => normaliseSearchValue(value.replace(/\+/g, " plus "));
 
 const searchCatalogue = (query: string, category: SearchCategory) => {
-  const terms = normaliseSearchValue(query).split(" ").filter(term => term.length > 1);
+  const terms = normaliseSearchValue(query).split(" ").filter(term => term.length > 1 || /^\d+$/.test(term));
   if (!terms.length) return [];
 
   return devices.filter(device => category === "all" || deviceCategory(device).toLowerCase() === category).map(device => {
@@ -338,11 +338,11 @@ const inferBrand = (title: string, extract = "") => {
 };
 
 async function searchWikipedia(query: string, category: SearchCategory, signal?: AbortSignal) {
-  const suffix = category === "laptop" ? "laptop computer" : category === "phone" ? "smartphone" : "smartphone OR laptop";
+  const suffix = category === "laptop" ? "laptop computer" : category === "phone" ? "smartphone" : "";
   const params = new URLSearchParams({
     action: "query",
     generator: "search",
-    gsrsearch: `${query} ${suffix}`,
+    gsrsearch: `${query} ${suffix}`.trim(),
     gsrnamespace: "0",
     gsrlimit: "18",
     prop: "pageimages|extracts",
@@ -356,7 +356,7 @@ async function searchWikipedia(query: string, category: SearchCategory, signal?:
   });
   const payload = record(await fetchJson(`${WIKIPEDIA_API}?${params}`, signal));
   const pages = Object.values(record(record(payload.query).pages));
-  const tokens = query.toLowerCase().split(/\s+/).filter(token => token.length > 1);
+  const tokens = query.toLowerCase().split(/\s+/).filter(token => token.length > 1 || /^\d+$/.test(token));
   return pages.map(rawPage => {
     const page = record(rawPage);
     const title = text(page.title);

@@ -66,3 +66,19 @@ test('short queries fail before requesting external sources', async t => {
   assert.equal(response.status, 400);
   assert.equal(fetch.mock.callCount(), 0);
 });
+
+test('model numbers stay meaningful and all-device search does not broaden the query', async t => {
+  t.mock.method(globalThis, 'fetch', async input => {
+    const url = new URL(input);
+    if (url.origin === 'https://en.wikipedia.org') {
+      assert.equal(url.searchParams.get('gsrsearch'), 'Pixel 8');
+      return Response.json({ query: { pages: { 123: {
+        pageid: 123, title: 'Pixel 8', extract: 'An Android smartphone.', index: 1,
+      } } } });
+    }
+    throw new Error('Fallback should not be used');
+  });
+  const response = await requestDevices(new URLSearchParams({ q: 'Pixel 8' }));
+  const { results } = await response.json();
+  assert.deepEqual(results.map(result => result.name), ['Pixel 8']);
+});
